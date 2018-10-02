@@ -52,6 +52,7 @@ public class World extends Application3D implements MouseListener,KeyListener{
     private static final float ROTATION_SCALE = 1;
 
     private Texture texture;
+    private Texture texture1;
 
     private TriangleMesh tree; //tree model
 
@@ -83,10 +84,9 @@ public class World extends Application3D implements MouseListener,KeyListener{
 		Shader.setInt(gl, "tex", 0);
 
         gl.glActiveTexture(GL.GL_TEXTURE0);
-        gl.glBindTexture(GL.GL_TEXTURE_2D, texture.getId());
+
 
         Shader.setPenColor(gl, Color.WHITE);
-
 		// Set the lighting properties
         Shader.setPoint3D(gl, "lightPos", new Point3D(terrain.sunlight.getX(), terrain.sunlight.getY(), terrain.sunlight.getZ()));
         Shader.setColor(gl, "lightIntensity", Color.GREEN);
@@ -106,9 +106,11 @@ public class World extends Application3D implements MouseListener,KeyListener{
                 .scale(times, times, times);
 		System.out.println(dx+" "+dz+" "+now_direction);
 
+		gl.glBindTexture(GL.GL_TEXTURE_2D, texture1.getId());
 		for (TriangleMesh mesh : meshes)
             mesh.draw(gl, frame);
 
+		gl.glBindTexture(GL.GL_TEXTURE_2D, texture.getId());
 		//draw the trees
 		for (int i=0;i<terrain.trees.size();i++) {
 			float x = terrain.trees.get(i).getPosition().getX();
@@ -187,8 +189,12 @@ public class World extends Application3D implements MouseListener,KeyListener{
 		super.init(gl);
 		tree.init(gl);
 		texture = new Texture(gl, "res/textures/BrightPurpleMarble.png", "png", false);
-		Shader shader = new Shader(gl, "shaders/vertex_tex_phong.glsl",
-                "shaders/fragment_tex_phong.glsl");
+		texture1 = new Texture(gl, "res/textures/grass.bmp", "bmp", false);
+//		Shader shader = new Shader(gl, "shaders/vertex_tex_phong.glsl",
+//                "shaders/fragment_tex_phong.glsl");
+
+		Shader shader = new Shader(gl, "shaders/vertex_tex_3d.glsl",
+                "shaders/fragment_tex_3d.glsl");
 
 		//getWindow().addMouseListener(this);
 		getWindow().addKeyListener(this);
