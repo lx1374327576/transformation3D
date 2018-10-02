@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL3;
 import com.jogamp.opengl.GLProfile;
 import com.jogamp.opengl.util.awt.TextureRenderer;
@@ -19,6 +20,7 @@ import unsw.graphics.Application3D;
 import unsw.graphics.CoordFrame3D;
 import unsw.graphics.Matrix4;
 import unsw.graphics.Shader;
+import unsw.graphics.Texture;
 import unsw.graphics.geometry.Point2D;
 import unsw.graphics.geometry.Point3D;
 import unsw.graphics.geometry.TriangleMesh;
@@ -34,15 +36,23 @@ public class World extends Application3D implements MouseListener,KeyListener{
 
     private Terrain terrain;
 
-    private float dx;
-    private float dy;
-    private float dz;
+    private float pi=(float) 3.1415926535;
+    private int times=1;
+
+    private float dx=(float)0.05;
+    private float dy=(float)0.05;
+    private float dz=(float)0.05;
+    private int[][] direction={{1,0},{0,-1},{-1,0},{0,1}};
+    private int now_direction=2;
 
     private float rotateX = 0;
-    private float rotateY = 0;
+    private float rotateY = 90;
+    private float rotateZ = 0;
     private Point2D myMousePoint = null;
     private static final float ROTATION_SCALE = 1;
-    
+
+    private Texture texture;
+
     private TriangleMesh tree; //tree model
 
     private List<TriangleMesh> meshes =  new ArrayList<>();
@@ -61,7 +71,7 @@ public class World extends Application3D implements MouseListener,KeyListener{
      * @throws FileNotFoundException
      */
     public static void main(String[] args) throws FileNotFoundException ,IOException  {
-        Terrain terrain = LevelIO.load(new File("res/worlds/test4.json"));
+        Terrain terrain = LevelIO.load(new File("res/worlds/test1.json"));
         World world = new World(terrain);
         world.start();
     }
@@ -69,16 +79,36 @@ public class World extends Application3D implements MouseListener,KeyListener{
 	@Override
 	public void display(GL3 gl) {
 		super.display(gl);
-		CoordFrame3D frame = CoordFrame3D.identity()
-                .translate(0-dx,-1-dy,0-dz)
-                .rotateX(rotateX)
-                .rotateY(rotateY);
 
-		Shader.setPenColor(gl, Color.GREEN);
+		Shader.setInt(gl, "tex", 0);
+
+        gl.glActiveTexture(GL.GL_TEXTURE0);
+        gl.glBindTexture(GL.GL_TEXTURE_2D, texture.getId());
+
+        Shader.setPenColor(gl, Color.WHITE);
+
+		// Set the lighting properties
+        Shader.setPoint3D(gl, "lightPos", new Point3D(terrain.sunlight.getX(), terrain.sunlight.getY(), terrain.sunlight.getZ()));
+        Shader.setColor(gl, "lightIntensity", Color.GREEN);
+        Shader.setColor(gl, "ambientIntensity", new Color(0.2f, 0.2f, 0.2f));
+
+        // Set the material properties
+        Shader.setColor(gl, "ambientCoeff", Color.WHITE);
+        Shader.setColor(gl, "diffuseCoeff", new Color(0.5f, 0.5f, 0.5f));
+        Shader.setColor(gl, "specularCoeff", new Color(0.8f, 0.8f, 0.8f));
+        Shader.setFloat(gl, "phongExp", 16f);
+
+        rotate_dy();
+		CoordFrame3D frame = CoordFrame3D.identity()
+				.rotateX((float)rotateX)
+                .rotateY((float)rotateY)
+                .translate(0-(float)dx,(float) (-1.5-dy),0-(float)dz)
+                .scale(times, times, times);
+		System.out.println(dx+" "+dz+" "+now_direction);
 
 		for (TriangleMesh mesh : meshes)
             mesh.draw(gl, frame);
-		
+
 		//draw the trees
 		for (int i=0;i<terrain.trees.size();i++) {
 			float x = terrain.trees.get(i).getPosition().getX();
@@ -88,16 +118,62 @@ public class World extends Application3D implements MouseListener,KeyListener{
 			int z1 = (int)z;
 			int z2 = (int)z+1;
 			float y = (float)(terrain.getGridAltitude(x2, z1) + terrain.getGridAltitude(x1, z2))/2;
-			
+
 			CoordFrame3D treeFrame =
-	                frame.translate(x, y+0.5f, z).scale(0.1f, 0.1f, 0.1f);
-			
+	                frame.translate((float)x, (float)y+0.5f, (float)z).scale(0.1f, 0.1f, 0.1f);
+
 			tree.draw(gl, treeFrame);
 		}
-		
-		
-		
-		
+
+
+
+
+	}
+
+	private void rotate_dy() {
+		// TODO Auto-generated method stub
+		float y1=terrain.altitudes[(int)dx][(int)dz];
+		float y2=terrain.altitudes[(int)dx+1][(int)dz+1];
+		float ddz=dz-(int)dz;
+		float ddx=dx-(int)dx;
+		float y3;
+		if (ddz>ddx){
+			y3=terrain.altitudes[(int)dx][(int)dz+1];
+			dy=(y2-y3)*ddx+(y3-y1)*ddz+y1;
+			switch (now_direction){
+				case 2:
+					rotateX=(float) Math.atan(y3-y2)/pi*180;
+					break;
+				case 1:
+					rotateX=(float) Math.atan(y3-y1)/pi*180;
+					break;
+				case 0:
+					rotateX=(float) Math.atan(y2-y3)/pi*180;
+					break;
+				case 3:
+					rotateX=(float) Math.atan(y1-y3)/pi*180;
+					break;
+			}
+		}else{
+			y3=terrain.altitudes[(int)dx+1][(int)dz];
+			dy=(y2-y3)*ddz+(y3-y1)*ddx+y1;
+			switch (now_direction){
+				case 0:
+					rotateX=(float) Math.atan(y1-y3)/pi*180;
+					break;
+				case 3:
+					rotateX=(float) Math.atan(y2-y3)/pi*180;
+					break;
+				case 2:
+					rotateX=(float) Math.atan(y3-y1)/pi*180;
+					break;
+				case 1:
+					rotateX=(float) Math.atan(y3-y2)/pi*180;
+					break;
+			}
+			rotateX=-rotateX;
+		}
+		//System.out.println(y1+" "+y2+" "+y3+" "+ddx+" "+ddz);
 	}
 
 	@Override
@@ -110,14 +186,17 @@ public class World extends Application3D implements MouseListener,KeyListener{
 	public void init(GL3 gl) {
 		super.init(gl);
 		tree.init(gl);
-		getWindow().addMouseListener(this);
+		texture = new Texture(gl, "res/textures/BrightPurpleMarble.png", "png", false);
+		Shader shader = new Shader(gl, "shaders/vertex_tex_phong.glsl",
+                "shaders/fragment_tex_phong.glsl");
+
+		//getWindow().addMouseListener(this);
 		getWindow().addKeyListener(this);
 
-		shaderset(gl);
+		shader.use(gl);
 
 		makeExtrusion(gl);
-		
-		maketrees(gl);
+
 
 	}
 
@@ -155,10 +234,10 @@ public class World extends Application3D implements MouseListener,KeyListener{
 		for (int i=0;i<terrain.width-1;i++)
 			for (int j=0;j<terrain.depth-1;j++){
 				mapShapeIndices.add(i*terrain.depth+j);
-				
+
 				mapShapeIndices.add((i+1)*terrain.depth+j+1);
 				mapShapeIndices.add((i+1)*terrain.depth+j);
-				
+
 				mapShapeIndices.add((i+1)*terrain.depth+j+1);
 				mapShapeIndices.add(i*terrain.depth+j);
 				mapShapeIndices.add(i*terrain.depth+j+1);
@@ -170,27 +249,10 @@ public class World extends Application3D implements MouseListener,KeyListener{
 		map.init(gl);
 		meshes.add(map);
 	}
-	
-	private void maketrees(GL3 gl) {
-		
-	}
 
-	private void shaderset(GL3 gl){
-        Shader shader = new Shader(gl, "shaders/vertex_phong.glsl",
-                "shaders/fragment_phong.glsl");
-        shader.use(gl);
 
-        // Set the lighting properties
-        Shader.setPoint3D(gl, "lightPos", new Point3D(terrain.sunlight.getX(), terrain.sunlight.getY(), terrain.sunlight.getZ()));
-        Shader.setColor(gl, "lightIntensity", Color.WHITE);
-        Shader.setColor(gl, "ambientIntensity", new Color(0.2f, 0.2f, 0.2f));
 
-        // Set the material properties
-        Shader.setColor(gl, "ambientCoeff", Color.WHITE);
-        Shader.setColor(gl, "diffuseCoeff", new Color(0.5f, 0.5f, 0.5f));
-        Shader.setColor(gl, "specularCoeff", new Color(0.8f, 0.8f, 0.8f));
-        Shader.setFloat(gl, "phongExp", 16f);
-	}
+
 
 	@Override
 	public void mouseMoved(MouseEvent e) {
@@ -239,23 +301,37 @@ public class World extends Application3D implements MouseListener,KeyListener{
 		switch (e.getKeyCode()) {
 
 			case KeyEvent.VK_W:
-				if ( dz < 100 ) dz -= 0.5;
+				dx-=direction[now_direction][0]*0.1;
+				dz+=direction[now_direction][1]*0.1;
+				if (!(dx<=terrain.width*times-1.1 && dx>=0 && dz<=terrain.depth*times-1.1 && dz>=0)){
+					dx+=direction[now_direction][0]*0.1;
+					dz-=direction[now_direction][1]*0.1;
+				}
 				break;
 			case KeyEvent.VK_S:
-				if ( dz >-100 ) dz += 0.5;
+				dx+=direction[now_direction][0]*0.1;
+				dz-=direction[now_direction][1]*0.1;
+				if (!(dx<=terrain.width*times-1.1 && dx>=0 && dz<=terrain.depth*times-1.1 && dz>=0)){
+					dx-=direction[now_direction][0]*0.1;
+					dz+=direction[now_direction][1]*0.1;
+				}
 				break;
 			case KeyEvent.VK_A:
-				if ( dx >-100 ) dx -= 0.5;
+				rotateY-=90;
+				now_direction=(now_direction+3)%4;
+				if (rotateY<0) rotateY+=360;
 				break;
 			case KeyEvent.VK_D:
-				if ( dx < 100 ) dx += 0.5;
+				rotateY+=90;
+				now_direction=(now_direction+1)%4;
+				if (rotateY>=360) rotateY-=360;
 				break;
-			case KeyEvent.VK_1:
-				if ( dy >-100 ) dy -= 0.5;
-				break;
-			case KeyEvent.VK_2:
-				if ( dy < 100 ) dy += 0.5;
-				break;
+//			case KeyEvent.VK_1:
+//				if ( dy >-100 ) dy -= 0.5;
+//				break;
+//			case KeyEvent.VK_2:
+//				if ( dy < 100 ) dy += 0.5;
+//				break;
 			default:
 				break;
 
