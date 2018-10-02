@@ -3,11 +3,13 @@ package unsw.graphics.world;
 import java.awt.Color;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.jogamp.opengl.GL3;
 import com.jogamp.opengl.GLProfile;
+import com.jogamp.opengl.util.awt.TextureRenderer;
 import com.jogamp.newt.event.KeyEvent;
 import com.jogamp.newt.event.KeyListener;
 import com.jogamp.newt.event.MouseEvent;
@@ -40,12 +42,15 @@ public class World extends Application3D implements MouseListener,KeyListener{
     private float rotateY = 0;
     private Point2D myMousePoint = null;
     private static final float ROTATION_SCALE = 1;
+    
+    private TriangleMesh tree; //tree model
 
     private List<TriangleMesh> meshes =  new ArrayList<>();
 
-    public World(Terrain terrain) {
+    public World(Terrain terrain)  throws IOException {
     	super("Assignment 2", 800, 800);
         this.terrain = terrain;
+        tree = new TriangleMesh("res/models/tree.ply", true, true); //load the tree model
 
     }
 
@@ -55,8 +60,8 @@ public class World extends Application3D implements MouseListener,KeyListener{
      * @param args - The first argument is a level file in JSON format
      * @throws FileNotFoundException
      */
-    public static void main(String[] args) throws FileNotFoundException {
-        Terrain terrain = LevelIO.load(new File("res/worlds/test1.json"));
+    public static void main(String[] args) throws FileNotFoundException ,IOException  {
+        Terrain terrain = LevelIO.load(new File("res/worlds/test4.json"));
         World world = new World(terrain);
         world.start();
     }
@@ -65,7 +70,7 @@ public class World extends Application3D implements MouseListener,KeyListener{
 	public void display(GL3 gl) {
 		super.display(gl);
 		CoordFrame3D frame = CoordFrame3D.identity()
-                .translate(-5-dx,-5-dy,-15-dz)
+                .translate(0-dx,-1-dy,0-dz)
                 .rotateX(rotateX)
                 .rotateY(rotateY);
 
@@ -73,6 +78,26 @@ public class World extends Application3D implements MouseListener,KeyListener{
 
 		for (TriangleMesh mesh : meshes)
             mesh.draw(gl, frame);
+		
+		//draw the trees
+		for (int i=0;i<terrain.trees.size();i++) {
+			float x = terrain.trees.get(i).getPosition().getX();
+			float z = terrain.trees.get(i).getPosition().getZ();
+			int x1 = (int)x;
+			int x2 = (int)x+1;
+			int z1 = (int)z;
+			int z2 = (int)z+1;
+			float y = (float)(terrain.getGridAltitude(x2, z1) + terrain.getGridAltitude(x1, z2))/2;
+			
+			CoordFrame3D treeFrame =
+	                frame.translate(x, y+0.5f, z).scale(0.1f, 0.1f, 0.1f);
+			
+			tree.draw(gl, treeFrame);
+		}
+		
+		
+		
+		
 	}
 
 	@Override
@@ -84,12 +109,15 @@ public class World extends Application3D implements MouseListener,KeyListener{
 	@Override
 	public void init(GL3 gl) {
 		super.init(gl);
+		tree.init(gl);
 		getWindow().addMouseListener(this);
 		getWindow().addKeyListener(this);
 
 		shaderset(gl);
 
 		makeExtrusion(gl);
+		
+		maketrees(gl);
 
 	}
 
@@ -118,18 +146,21 @@ public class World extends Application3D implements MouseListener,KeyListener{
 
 	private void makeExtrusion(GL3 gl){
 		List<Point3D> mapShape=new ArrayList<Point3D>();
-		for (int i=0;i<terrain.width;i++)
+		for (int i=0;i<terrain.width;i++) {
 			for (int j=0;j<terrain.depth;j++){
-				mapShape.add(new Point3D(i,j,terrain.altitudes[i][j]));
+				mapShape.add(new Point3D(i,terrain.altitudes[i][j],j));
 			}
+		}
 		List<Integer> mapShapeIndices=new ArrayList<Integer>();
 		for (int i=0;i<terrain.width-1;i++)
 			for (int j=0;j<terrain.depth-1;j++){
 				mapShapeIndices.add(i*terrain.depth+j);
+				
+				mapShapeIndices.add((i+1)*terrain.depth+j+1);
 				mapShapeIndices.add((i+1)*terrain.depth+j);
+				
 				mapShapeIndices.add((i+1)*terrain.depth+j+1);
 				mapShapeIndices.add(i*terrain.depth+j);
-				mapShapeIndices.add((i+1)*terrain.depth+j+1);
 				mapShapeIndices.add(i*terrain.depth+j+1);
 			}
 
@@ -139,6 +170,10 @@ public class World extends Application3D implements MouseListener,KeyListener{
 		map.init(gl);
 		meshes.add(map);
 	}
+	
+	private void maketrees(GL3 gl) {
+		
+	}
 
 	private void shaderset(GL3 gl){
         Shader shader = new Shader(gl, "shaders/vertex_phong.glsl",
@@ -146,7 +181,7 @@ public class World extends Application3D implements MouseListener,KeyListener{
         shader.use(gl);
 
         // Set the lighting properties
-        Shader.setPoint3D(gl, "lightPos", new Point3D(0, 0, 5));
+        Shader.setPoint3D(gl, "lightPos", new Point3D(terrain.sunlight.getX(), terrain.sunlight.getY(), terrain.sunlight.getZ()));
         Shader.setColor(gl, "lightIntensity", Color.WHITE);
         Shader.setColor(gl, "ambientIntensity", new Color(0.2f, 0.2f, 0.2f));
 
