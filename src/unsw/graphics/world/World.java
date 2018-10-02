@@ -8,7 +8,8 @@ import java.util.List;
 
 import com.jogamp.opengl.GL3;
 import com.jogamp.opengl.GLProfile;
-
+import com.jogamp.newt.event.KeyEvent;
+import com.jogamp.newt.event.KeyListener;
 import com.jogamp.newt.event.MouseEvent;
 import com.jogamp.newt.event.MouseListener;
 
@@ -27,9 +28,13 @@ import unsw.graphics.geometry.TriangleMesh;
  *
  * @author malcolmr
  */
-public class World extends Application3D implements MouseListener{
+public class World extends Application3D implements MouseListener,KeyListener{
 
     private Terrain terrain;
+
+    private float dx;
+    private float dy;
+    private float dz;
 
     private float rotateX = 0;
     private float rotateY = 0;
@@ -60,7 +65,7 @@ public class World extends Application3D implements MouseListener{
 	public void display(GL3 gl) {
 		super.display(gl);
 		CoordFrame3D frame = CoordFrame3D.identity()
-                .translate(-5,-5,-15)
+                .translate(-5-dx,-5-dy,-15-dz)
                 .rotateX(rotateX)
                 .rotateY(rotateY);
 
@@ -80,6 +85,7 @@ public class World extends Application3D implements MouseListener{
 	public void init(GL3 gl) {
 		super.init(gl);
 		getWindow().addMouseListener(this);
+		getWindow().addKeyListener(this);
 
 		shaderset(gl);
 
@@ -188,6 +194,41 @@ public class World extends Application3D implements MouseListener{
 
 	@Override
 	public void mouseWheelMoved(MouseEvent arg0) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void keyPressed(KeyEvent e) {
+		// TODO Auto-generated method stub
+		switch (e.getKeyCode()) {
+
+			case KeyEvent.VK_W:
+				if ( dz < 100 ) dz -= 0.5;
+				break;
+			case KeyEvent.VK_S:
+				if ( dz >-100 ) dz += 0.5;
+				break;
+			case KeyEvent.VK_A:
+				if ( dx >-100 ) dx -= 0.5;
+				break;
+			case KeyEvent.VK_D:
+				if ( dx < 100 ) dx += 0.5;
+				break;
+			case KeyEvent.VK_1:
+				if ( dy >-100 ) dy -= 0.5;
+				break;
+			case KeyEvent.VK_2:
+				if ( dy < 100 ) dy += 0.5;
+				break;
+			default:
+				break;
+
+        }
+	}
+
+	@Override
+	public void keyReleased(KeyEvent arg0) {
 		// TODO Auto-generated method stub
 
 	}
