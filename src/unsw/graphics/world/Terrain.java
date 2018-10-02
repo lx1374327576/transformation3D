@@ -11,20 +11,20 @@ import unsw.graphics.geometry.Point2D;
 
 
 /**
- * COMMENT: Comment HeightMap 
+ * COMMENT: Comment HeightMap
  *
  * @author malcolmr
  */
 public class Terrain {
 
-    private int width;
-    private int depth;
-    private float[][] altitudes;
-    private List<Tree> trees;
-    private List<Road> roads;
-    private Vector3 sunlight;
+    public int width;
+    public int depth;
+    public float[][] altitudes;
+    public List<Tree> trees;
+    public List<Road> roads;
+    public Vector3 sunlight;
 
-    /**
+	/**
      * Create a new terrain
      *
      * @param width The number of vertices in the x-direction
@@ -52,21 +52,21 @@ public class Terrain {
     }
 
     /**
-     * Set the sunlight direction. 
-     * 
+     * Set the sunlight direction.
+     *
      * Note: the sun should be treated as a directional light, without a position
-     * 
+     *
      * @param dx
      * @param dy
      * @param dz
      */
     public void setSunlightDir(float dx, float dy, float dz) {
-        sunlight = new Vector3(dx, dy, dz);      
+        sunlight = new Vector3(dx, dy, dz);
     }
 
     /**
      * Get the altitude at a grid point
-     * 
+     *
      * @param x
      * @param z
      * @return
@@ -77,7 +77,7 @@ public class Terrain {
 
     /**
      * Set the altitude at a grid point
-     * 
+     *
      * @param x
      * @param z
      * @return
@@ -87,9 +87,9 @@ public class Terrain {
     }
 
     /**
-     * Get the altitude at an arbitrary point. 
+     * Get the altitude at an arbitrary point.
      * Non-integer points should be interpolated from neighbouring grid points
-     * 
+     *
      * @param x
      * @param z
      * @return
@@ -98,14 +98,14 @@ public class Terrain {
         float altitude = 0;
 
         // TODO: Implement this
-        
+
         return altitude;
     }
 
     /**
-     * Add a tree at the specified (x,z) point. 
+     * Add a tree at the specified (x,z) point.
      * The tree's y coordinate is calculated from the altitude of the terrain at that point.
-     * 
+     *
      * @param x
      * @param z
      */
@@ -117,14 +117,14 @@ public class Terrain {
 
 
     /**
-     * Add a road. 
-     * 
+     * Add a road.
+     *
      * @param x
      * @param z
      */
     public void addRoad(float width, List<Point2D> spine) {
         Road road = new Road(width, spine);
-        roads.add(road);        
+        roads.add(road);
     }
 
 }
