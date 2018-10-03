@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import com.jogamp.opengl.GL;
@@ -46,15 +47,25 @@ public class World extends Application3D implements MouseListener,KeyListener{
     private float pi=(float) 3.1415926535;
     private int times=1;
 
-    private boolean first_or_third=true;
-    private boolean if_look_ground=false;
-    private boolean day_or_night=true;
+    private boolean first_or_third=true; ///y
+    private boolean if_look_ground=false;///t
+    private boolean day_or_night=true;///u
+    private boolean road_or_not=true;///i
+    private boolean now_road=true;
+    private boolean rain_or_not=false;///o
+    private boolean lake_or_not=false;///p
+
+    private TriangleMesh lake;
+
+    private int rain_number=0;
+    private List<Line3D> list_rain;
 
     private float dx=(float)0.05;
     private float dy=(float)0.05;
     private float dz=(float)0.05;
     private int[][] direction={{1,0},{0,-1},{-1,0},{0,1}};
     private int now_direction=2;
+    private int index = 0;
 
     private float rotateX = 0;
     private float rotateY = 90;
@@ -64,8 +75,12 @@ public class World extends Application3D implements MouseListener,KeyListener{
     private Point2D myMousePoint = null;
     private static final float ROTATION_SCALE = 1;
 
-    private Texture texture;
+    private Texture texture_tree;
+    private Texture texture_model;
     private Texture texture1;
+    private Texture texture2;
+    private Texture texture3;
+    private Texture texture4;
 
     private TriangleMesh tree; //tree model
     private TriangleMesh model;//person
@@ -96,6 +111,10 @@ public class World extends Application3D implements MouseListener,KeyListener{
 	@Override
 	public void display(GL3 gl) {
 		super.display(gl);
+		if (index == 60){
+			index = 0;
+		}
+		index++;
 
        // shader.use(gl);
 		Shader.setPenColor(gl, Color.WHITE);
@@ -133,11 +152,28 @@ public class World extends Application3D implements MouseListener,KeyListener{
 		//System.out.println(dx+" "+dz+" "+now_direction);
 		//System.out.println("lx"+rotateX);
 
-		gl.glBindTexture(GL.GL_TEXTURE_2D, texture1.getId());
+
+		if(index < 15){
+			gl.glBindTexture(GL.GL_TEXTURE_2D, texture1.getId());
+		}else if(index >= 15 && index <30){
+			gl.glBindTexture(GL.GL_TEXTURE_2D, texture2.getId());
+		}else if(index >= 30 && index <45){
+			gl.glBindTexture(GL.GL_TEXTURE_2D, texture3.getId());
+		}else{
+			gl.glBindTexture(GL.GL_TEXTURE_2D, texture4.getId());
+		}
+
+		if (lake_or_not){
+			Shader.setPenColor(gl, Color.WHITE);
+			lake.draw(gl,frame);
+		}
+
+		gl.glBindTexture(GL.GL_TEXTURE_2D, texture_model.getId());
 		for (TriangleMesh mesh : meshes)
             mesh.draw(gl, frame);
 
-		gl.glBindTexture(GL.GL_TEXTURE_2D, texture.getId());
+		Shader.setPenColor(gl, Color.WHITE);
+		gl.glBindTexture(GL.GL_TEXTURE_2D, texture_tree.getId());
 		//draw the trees
 		for (int i=0;i<terrain.trees.size();i++) {
 			float x = terrain.trees.get(i).getPosition().getX();
@@ -167,21 +203,64 @@ public class World extends Application3D implements MouseListener,KeyListener{
     	float last_x,last_y,last_z;
     	//System.out.println(roads.size());
     	//System.out.println(roads.get(0).size());
+    	if (road_or_not!=now_road){
+    		System.out.println("Change Roads!");
+    		now_road=road_or_not;
+    		roads=execute_roads(terrain.roads());
+    	}
     	for(Road road:roads){
     		last_x=road.point(0).getX();
     		last_z=road.point(0).getY();
     		//System.out.println(last_x+" "+last_z);
-    		last_y=terrain.altitudes[(int)last_x][(int)last_z];
+    		last_y=y_get(last_x,last_z);
     		for(int i = 1; i < segments; i++){
         		float t = i*dt;
         		list_road.add(new Line3D(last_x,last_y,last_z,
-        				road.point(t).getX(),last_y,road.point(t).getY()));
+        				road.point(t).getX(),y_get(road.point(t).getX(),road.point(t).getY()),
+        				road.point(t).getY()));
         		last_x=road.point(t).getX();
         		last_z=road.point(t).getY();
         	}
     	}
+    	Shader.setPenColor(gl, Color.BLACK);
     	for (Line3D line3D:list_road) line3D.draw(gl,frame);
 
+    	rain_number++;
+		if (rain_number>=60)rain_number-=60;
+		if (rain_or_not) {
+			list_rain=new ArrayList<Line3D>();
+			work_rain(rain_number/10);
+			Shader.setPenColor(gl, Color.BLUE);
+			for (Line3D line3D:list_rain) line3D.draw(gl,frame);
+		}
+	}
+
+	private void work_rain(int rain_number) {
+		// TODO Auto-generated method stub
+		for (int i=0;i<terrain.width;i++){
+			for (int j=0;j<terrain.depth;j++){
+				list_rain.add(new Line3D(i,(float)(8.0/6*((i+j+rain_number)%6)),j,
+						i,(float)(8.0/6*((i+j+rain_number)%6+1)),j));
+				list_rain.add(new Line3D((float)(i+0.5),(float)(8.0/6*((i*j+rain_number)%6)),(float)(j+0.5),
+						(float)(i+0.5),(float)(8.0/6*((i*j+rain_number)%6-1)),(float)(j+0.5)));
+			}
+		}
+	}
+
+	private float y_get(float dx, float dz) {
+		// TODO Auto-generated method stub
+		float y1=terrain.altitudes[(int)dx][(int)dz];
+		float y2=terrain.altitudes[(int)dx+1][(int)dz+1];
+		float ddz=dz-(int)dz;
+		float ddx=dx-(int)dx;
+		float y3;
+		if (ddz>ddx){
+			y3=terrain.altitudes[(int)dx][(int)dz+1];
+			return (y2-y3)*ddx+(y3-y1)*ddz+y1;
+		}else{
+			y3=terrain.altitudes[(int)dx+1][(int)dz];
+			return (y2-y3)*ddz+(y3-y1)*ddx+y1;
+		}
 	}
 
 	private void rotate_dy() {
@@ -235,6 +314,15 @@ public class World extends Application3D implements MouseListener,KeyListener{
 	@Override
 	public void destroy(GL3 gl) {
 		super.destroy(gl);
+		model.destroy(gl);
+		tree.destroy(gl);
+		texture1.destroy(gl);
+		texture2.destroy(gl);
+		texture3.destroy(gl);
+		texture4.destroy(gl);
+		texture_tree.destroy(gl);
+		texture_model.destroy(gl);
+
 
 	}
 
@@ -247,8 +335,12 @@ public class World extends Application3D implements MouseListener,KeyListener{
 		roads=terrain.roads();
 		roads=execute_roads(roads);
 
-		texture = new Texture(gl, "res/textures/BrightPurpleMarble.png", "png", false);
-		texture1 = new Texture(gl, "res/textures/grass.bmp", "bmp", false);
+		texture_tree = new Texture(gl,"res/textures/BrightPurpleMarble.png","png",false);
+		texture_model = new Texture(gl,"res/textures/grass.bmp","bmp",false);
+		texture1 = new Texture(gl, "res/textures/01.jpg", "jpg", false);
+		texture2 = new Texture(gl, "res/textures/02.jpg", "jpg", false);
+		texture3 = new Texture(gl, "res/textures/03.jpg", "jpg", false);
+		texture4 = new Texture(gl, "res/textures/04.jpg", "jpg", false);
 		Shader shader = new Shader(gl, "shaders/vertex_tex_phong.glsl",
                 "shaders/fragment_tex_phong.glsl");
 
@@ -280,15 +372,17 @@ public class World extends Application3D implements MouseListener,KeyListener{
 		for (Road road:roads2){
 			roads.add(road);
 			List<Point2D> tmp;
-			for (int i=1;i<=98;i++){
+			float tmp_number=98;
+			if (!road_or_not) tmp_number*=road.width();
+			for (int i=1;i<=tmp_number;i++){
 				tmp=new ArrayList<Point2D>();
 				int j=0;
 				for (Point2D point2D:road.points){
 					j++;
-					if (j%2==0){
+					if (i%2==0){
 						tmp.add(new Point2D(point2D.getX()-step*i,point2D.getY()-step*i));
 					}else{
-						tmp.add(new Point2D(point2D.getX()-step*i,point2D.getY()-step*i));
+						tmp.add(new Point2D(point2D.getX()+step*i,point2D.getY()+step*i));
 					}
 				}
 				roads.add(new Road((float) road.width(),tmp));
@@ -345,6 +439,13 @@ public class World extends Application3D implements MouseListener,KeyListener{
 		TriangleMesh map = new TriangleMesh(mapShape, mapShapeIndices, true);
 		map.init(gl);
 		meshes.add(map);
+		List<Point3D> lakeShape=new ArrayList<Point3D>();
+		lakeShape.add(new Point3D(10,0,14));
+		lakeShape.add(new Point3D(10,0,22));
+		lakeShape.add(new Point3D(2,0,14));
+		List<Integer> lakeShapeIndices=Arrays.asList(0,1,2,0,2,1);
+		lake=new TriangleMesh(lakeShape, lakeShapeIndices, true);
+		lake.init(gl);
 	}
 
 
@@ -435,12 +536,26 @@ public class World extends Application3D implements MouseListener,KeyListener{
 				break;
 			case KeyEvent.VK_Y:
 				first_or_third=!first_or_third;
+				System.out.println("Change angles!");
 				break;
 			case KeyEvent.VK_T:
 				if_look_ground=!if_look_ground;
+				System.out.println("Change look direction!");
 				break;
 			case KeyEvent.VK_U:
 				day_or_night=!day_or_night;
+				System.out.println("Change time!");
+				break;
+			case KeyEvent.VK_I:
+				road_or_not=!road_or_not;
+				break;
+			case KeyEvent.VK_O:
+				rain_or_not=!rain_or_not;
+				System.out.println("Change weather!");
+				break;
+			case KeyEvent.VK_P:
+				lake_or_not=!lake_or_not;
+				System.out.println("Change lake!");
 				break;
 //			case KeyEvent.VK_1:
 //				if ( dy >-100 ) dy -= 0.5;

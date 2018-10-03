@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package unsw.graphics.geometry;
 
@@ -15,9 +15,9 @@ import unsw.graphics.Shader;
 
 /**
  * A convex polygon in 2D space.
- * 
+ *
  * This class is immutable.
- * 
+ *
  * @author Robert Clifton-Everest
  *
  */
@@ -27,16 +27,16 @@ public class Polygon2D {
     public Polygon2D(List<Point2D> points) {
         this.points = new ArrayList<Point2D>(points);
     }
-    
+
     /**
      * Construct a polygon with the given values representing the vertices.
-     * 
+     *
      * Argument 2*i and 2*i+1 form vertex i on the polygon. e.g.
-     * 
+     *
      * <code>new LineStrip2D(0,0, 1,0, 1,1, -1,1);</code>
-     * 
+     *
      * creates a polygon with vertices (0,0), (1,0), (1,1), (-1,1).
-     * 
+     *
      * @param values
      */
     public Polygon2D(float... values) {
@@ -68,12 +68,12 @@ public class Polygon2D {
 
         gl.glDeleteBuffers(1, names, 0);
     }
-    
+
     public void drawOutline(GL3 gl, CoordFrame2D frame) {
         // TODO: You need to write this method.
         // It should draw an outline of a polygon using GL_LINE_LOOP
     }
-    
+
     /**
      * Draw the polygon on the canvas.
      * @param gl
