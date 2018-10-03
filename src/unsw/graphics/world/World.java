@@ -39,6 +39,9 @@ public class World extends Application3D implements MouseListener,KeyListener{
     private float pi=(float) 3.1415926535;
     private int times=1;
 
+    private boolean first_or_third=true;
+    private boolean if_look_ground=false;
+
     private float dx=(float)0.05;
     private float dy=(float)0.05;
     private float dz=(float)0.05;
@@ -48,6 +51,8 @@ public class World extends Application3D implements MouseListener,KeyListener{
     private float rotateX = 0;
     private float rotateY = 90;
     private float rotateZ = 0;
+    private float r_rotateX = 0;
+    private float r_rotateY = 0;
     private Point2D myMousePoint = null;
     private static final float ROTATION_SCALE = 1;
 
@@ -55,6 +60,7 @@ public class World extends Application3D implements MouseListener,KeyListener{
     private Texture texture1;
 
     private TriangleMesh tree; //tree model
+    private TriangleMesh model;//person
 
     private List<TriangleMesh> meshes =  new ArrayList<>();
 
@@ -62,6 +68,7 @@ public class World extends Application3D implements MouseListener,KeyListener{
     	super("Assignment 2", 800, 800);
         this.terrain = terrain;
         tree = new TriangleMesh("res/models/tree.ply", true, true); //load the tree model
+        model = new TriangleMesh("res/models/bunny.ply", true, true);
 
     }
 
@@ -99,12 +106,23 @@ public class World extends Application3D implements MouseListener,KeyListener{
         Shader.setFloat(gl, "phongExp", 16f);
 
         rotate_dy();
+        float qx,qy,qz;
+        if (first_or_third){
+        	qx=0;
+        	qy=(float) -2;
+        	qz=0;
+        }else{
+        	qx=(float) 5;
+        	qy=(float) -5;
+        	qz=0;
+        }
 		CoordFrame3D frame = CoordFrame3D.identity()
 				.rotateX((float)rotateX)
                 .rotateY((float)rotateY)
-                .translate(0-(float)dx,(float) (-1.5-dy),0-(float)dz)
+                .translate((float)(qx-dx),(float) (qy-dy),(float)(qz-dz))
                 .scale(times, times, times);
-		System.out.println(dx+" "+dz+" "+now_direction);
+		//System.out.println(dx+" "+dz+" "+now_direction);
+		//System.out.println("lx"+rotateX);
 
 		gl.glBindTexture(GL.GL_TEXTURE_2D, texture1.getId());
 		for (TriangleMesh mesh : meshes)
@@ -127,6 +145,13 @@ public class World extends Application3D implements MouseListener,KeyListener{
 			tree.draw(gl, treeFrame);
 		}
 
+		CoordFrame3D modelFrame = frame
+//				.rotateY(r_rotateY)
+				.translate((float)(0+dx),(float)(0.3+dy),(float)(0+dz))
+				.scale(5, 5, 5);
+		if (!first_or_third)model.draw(gl,modelFrame);
+
+		//System.out.println("tsy"+rotateX);
 
 
 
@@ -173,8 +198,10 @@ public class World extends Application3D implements MouseListener,KeyListener{
 					rotateX=(float) Math.atan(y3-y2)/pi*180;
 					break;
 			}
-			rotateX=-rotateX;
+		rotateX=-rotateX;
 		}
+		if (!first_or_third)rotateX=45;
+		if (if_look_ground)rotateX+=45;
 		//System.out.println(y1+" "+y2+" "+y3+" "+ddx+" "+ddz);
 	}
 
@@ -188,6 +215,7 @@ public class World extends Application3D implements MouseListener,KeyListener{
 	public void init(GL3 gl) {
 		super.init(gl);
 		tree.init(gl);
+		model.init(gl);
 		texture = new Texture(gl, "res/textures/BrightPurpleMarble.png", "png", false);
 		texture1 = new Texture(gl, "res/textures/grass.bmp", "bmp", false);
 //		Shader shader = new Shader(gl, "shaders/vertex_tex_phong.glsl",
@@ -323,14 +351,30 @@ public class World extends Application3D implements MouseListener,KeyListener{
 				}
 				break;
 			case KeyEvent.VK_A:
-				rotateY-=90;
 				now_direction=(now_direction+3)%4;
-				if (rotateY<0) rotateY+=360;
+				if (first_or_third){
+					rotateY-=90;
+					if (rotateY<0) rotateY+=360;
+				}else{
+					r_rotateY-=90;
+					if (r_rotateY<0) r_rotateY+=360;
+				}
 				break;
 			case KeyEvent.VK_D:
-				rotateY+=90;
 				now_direction=(now_direction+1)%4;
-				if (rotateY>=360) rotateY-=360;
+				if (first_or_third){
+					rotateY+=90;
+					if (rotateY>=360) rotateY-=360;
+				}else{
+					r_rotateY+=90;
+					if (r_rotateY>=360) r_rotateY-=360;
+				}
+				break;
+			case KeyEvent.VK_Y:
+				first_or_third=!first_or_third;
+				break;
+			case KeyEvent.VK_T:
+				if_look_ground=!if_look_ground;
 				break;
 //			case KeyEvent.VK_1:
 //				if ( dy >-100 ) dy -= 0.5;
