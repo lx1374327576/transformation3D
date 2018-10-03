@@ -131,10 +131,10 @@ public class ModelViewer extends Application3D {
         if (USE_LIGHTING) {
             Shader.setPoint3D(gl, "lightPos", new Point3D(0, 0, 5));
             Shader.setColor(gl, "lightIntensity", Color.WHITE);
-            Shader.setColor(gl, "ambientIntensity", new Color(0.2f, 0.2f, 0.2f));
+            Shader.setColor(gl, "ambientIntensity", new Color(0f, 0f, 0f));
 
             // Set the material properties
-            Shader.setColor(gl, "ambientCoeff", Color.WHITE);
+            Shader.setColor(gl, "ambientCoeff", Color.BLACK);
             Shader.setColor(gl, "diffuseCoeff", new Color(0.5f, 0.5f, 0.5f));
             Shader.setColor(gl, "specularCoeff", new Color(0.8f, 0.8f, 0.8f));
             Shader.setFloat(gl, "phongExp", 16f);

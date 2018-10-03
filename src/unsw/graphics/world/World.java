@@ -98,6 +98,21 @@ public class World extends Application3D implements MouseListener,KeyListener{
 		super.display(gl);
 
        // shader.use(gl);
+		Shader.setPenColor(gl, Color.WHITE);
+		Shader.setPoint3D(gl, "lightPos", new Point3D((float)(0+dx),(float)(0.3+dy),(float)(0+dz)));
+        if (day_or_night){
+        	Shader.setColor(gl, "lightIntensity", Color.BLACK);
+        	Shader.setColor(gl, "ambientIntensity", new Color(1f, 1f, 1f));
+        }else{
+        	Shader.setColor(gl, "lightIntensity", Color.WHITE);
+        	Shader.setColor(gl, "ambientIntensity", new Color(0f, 0f, 0f));
+        }
+
+        // Set the material properties
+        Shader.setColor(gl, "ambientCoeff", Color.WHITE);
+        Shader.setColor(gl, "diffuseCoeff", new Color(1f, 1f, 1f));
+        Shader.setColor(gl, "specularCoeff", new Color(1f, 1f, 1f));
+        Shader.setFloat(gl, "phongExp", 16f);
 
         rotate_dy();
         float qx,qy,qz;
@@ -234,32 +249,22 @@ public class World extends Application3D implements MouseListener,KeyListener{
 
 		texture = new Texture(gl, "res/textures/BrightPurpleMarble.png", "png", false);
 		texture1 = new Texture(gl, "res/textures/grass.bmp", "bmp", false);
-//		Shader shader = new Shader(gl, "shaders/vertex_tex_phong.glsl",
-//                "shaders/fragment_tex_phong.glsl");
+		Shader shader = new Shader(gl, "shaders/vertex_tex_phong.glsl",
+                "shaders/fragment_tex_phong.glsl");
 
-		shader = new Shader(gl, "shaders/vertex_tex_3d.glsl",
-                "shaders/fragment_tex_3d.glsl");
-		Shader.setInt(gl, "tex", 0);
+//		shader = new Shader(gl, "shaders/vertex_tex_3d.glsl",
+//                "shaders/fragment_tex_3d.glsl");
 
-        gl.glActiveTexture(GL.GL_TEXTURE0);
+		shader.use(gl);
+		//Shader.setInt(gl, "tex", 0);
 
+        //gl.glActiveTexture(GL.GL_TEXTURE0);
 
-        Shader.setPenColor(gl, Color.WHITE);
-		// Set the lighting properties
-        Shader.setPoint3D(gl, "lightPos", new Point3D(0,-1,0));
-        Shader.setColor(gl, "lightIntensity", Color.WHITE);
-        Shader.setColor(gl, "ambientIntensity", new Color(0f, 0f, 0f));
-
-        // Set the material properties
-        Shader.setColor(gl, "ambientCoeff", Color.WHITE);
-        Shader.setColor(gl, "diffuseCoeff", new Color(0.5f, 0.5f, 0.5f));
-        Shader.setColor(gl, "specularCoeff", new Color(0.8f, 0.8f, 0.8f));
-        Shader.setFloat(gl, "phongExp", 16f);
 
 		getWindow().addMouseListener(this);
 		getWindow().addKeyListener(this);
 
-		shader.use(gl);
+
 
 		makeExtrusion(gl);
 
