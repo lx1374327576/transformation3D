@@ -21,6 +21,8 @@ import unsw.graphics.CoordFrame3D;
 import unsw.graphics.Matrix4;
 import unsw.graphics.Shader;
 import unsw.graphics.Texture;
+import unsw.graphics.geometry.Line3D;
+import unsw.graphics.geometry.LineStrip2D;
 import unsw.graphics.geometry.Point2D;
 import unsw.graphics.geometry.Point3D;
 import unsw.graphics.geometry.TriangleMesh;
@@ -35,12 +37,18 @@ import unsw.graphics.geometry.TriangleMesh;
 public class World extends Application3D implements MouseListener,KeyListener{
 
     private Terrain terrain;
+    private List<Road> roads=new ArrayList<Road>();
+
+    private Shader shader;
+
+    private int segments=64;
 
     private float pi=(float) 3.1415926535;
     private int times=1;
 
     private boolean first_or_third=true;
     private boolean if_look_ground=false;
+    private boolean day_or_night=true;
 
     private float dx=(float)0.05;
     private float dy=(float)0.05;
@@ -69,6 +77,7 @@ public class World extends Application3D implements MouseListener,KeyListener{
         this.terrain = terrain;
         tree = new TriangleMesh("res/models/tree.ply", true, true); //load the tree model
         model = new TriangleMesh("res/models/bunny.ply", true, true);
+        super.setBackground(Color.black);
 
     }
 
@@ -88,22 +97,7 @@ public class World extends Application3D implements MouseListener,KeyListener{
 	public void display(GL3 gl) {
 		super.display(gl);
 
-		Shader.setInt(gl, "tex", 0);
-
-        gl.glActiveTexture(GL.GL_TEXTURE0);
-
-
-        Shader.setPenColor(gl, Color.WHITE);
-		// Set the lighting properties
-        Shader.setPoint3D(gl, "lightPos", new Point3D(terrain.sunlight.getX(), terrain.sunlight.getY(), terrain.sunlight.getZ()));
-        Shader.setColor(gl, "lightIntensity", Color.GREEN);
-        Shader.setColor(gl, "ambientIntensity", new Color(0.2f, 0.2f, 0.2f));
-
-        // Set the material properties
-        Shader.setColor(gl, "ambientCoeff", Color.WHITE);
-        Shader.setColor(gl, "diffuseCoeff", new Color(0.5f, 0.5f, 0.5f));
-        Shader.setColor(gl, "specularCoeff", new Color(0.8f, 0.8f, 0.8f));
-        Shader.setFloat(gl, "phongExp", 16f);
+       // shader.use(gl);
 
         rotate_dy();
         float qx,qy,qz;
@@ -153,7 +147,25 @@ public class World extends Application3D implements MouseListener,KeyListener{
 
 		//System.out.println("tsy"+rotateX);
 
-
+		List<Line3D> list_road = new ArrayList();
+    	float dt = 1.0f/segments;
+    	float last_x,last_y,last_z;
+    	//System.out.println(roads.size());
+    	//System.out.println(roads.get(0).size());
+    	for(Road road:roads){
+    		last_x=road.point(0).getX();
+    		last_z=road.point(0).getY();
+    		//System.out.println(last_x+" "+last_z);
+    		last_y=terrain.altitudes[(int)last_x][(int)last_z];
+    		for(int i = 1; i < segments; i++){
+        		float t = i*dt;
+        		list_road.add(new Line3D(last_x,last_y,last_z,
+        				road.point(t).getX(),last_y,road.point(t).getY()));
+        		last_x=road.point(t).getX();
+        		last_z=road.point(t).getY();
+        	}
+    	}
+    	for (Line3D line3D:list_road) line3D.draw(gl,frame);
 
 	}
 
@@ -216,22 +228,68 @@ public class World extends Application3D implements MouseListener,KeyListener{
 		super.init(gl);
 		tree.init(gl);
 		model.init(gl);
+
+		roads=terrain.roads();
+		roads=execute_roads(roads);
+
 		texture = new Texture(gl, "res/textures/BrightPurpleMarble.png", "png", false);
 		texture1 = new Texture(gl, "res/textures/grass.bmp", "bmp", false);
 //		Shader shader = new Shader(gl, "shaders/vertex_tex_phong.glsl",
 //                "shaders/fragment_tex_phong.glsl");
 
-		Shader shader = new Shader(gl, "shaders/vertex_tex_3d.glsl",
+		shader = new Shader(gl, "shaders/vertex_tex_3d.glsl",
                 "shaders/fragment_tex_3d.glsl");
+		Shader.setInt(gl, "tex", 0);
 
-		//getWindow().addMouseListener(this);
+        gl.glActiveTexture(GL.GL_TEXTURE0);
+
+
+        Shader.setPenColor(gl, Color.WHITE);
+		// Set the lighting properties
+        Shader.setPoint3D(gl, "lightPos", new Point3D(0,-1,0));
+        Shader.setColor(gl, "lightIntensity", Color.WHITE);
+        Shader.setColor(gl, "ambientIntensity", new Color(0f, 0f, 0f));
+
+        // Set the material properties
+        Shader.setColor(gl, "ambientCoeff", Color.WHITE);
+        Shader.setColor(gl, "diffuseCoeff", new Color(0.5f, 0.5f, 0.5f));
+        Shader.setColor(gl, "specularCoeff", new Color(0.8f, 0.8f, 0.8f));
+        Shader.setFloat(gl, "phongExp", 16f);
+
+		getWindow().addMouseListener(this);
 		getWindow().addKeyListener(this);
 
 		shader.use(gl);
 
 		makeExtrusion(gl);
 
+		System.out.println("Successful init!");
+	}
 
+
+
+	private List<Road> execute_roads(List<Road> roads2) {
+		// TODO Auto-generated method stub
+		float step=(float) 0.005;
+		List<Road> roads=new ArrayList<Road>();
+		for (Road road:roads2){
+			roads.add(road);
+			List<Point2D> tmp;
+			for (int i=1;i<=98;i++){
+				tmp=new ArrayList<Point2D>();
+				int j=0;
+				for (Point2D point2D:road.points){
+					j++;
+					if (j%2==0){
+						tmp.add(new Point2D(point2D.getX()-step*i,point2D.getY()-step*i));
+					}else{
+						tmp.add(new Point2D(point2D.getX()-step*i,point2D.getY()-step*i));
+					}
+				}
+				roads.add(new Road((float) road.width(),tmp));
+			}
+		}
+		return roads;
 	}
 
 	@Override
@@ -375,6 +433,9 @@ public class World extends Application3D implements MouseListener,KeyListener{
 				break;
 			case KeyEvent.VK_T:
 				if_look_ground=!if_look_ground;
+				break;
+			case KeyEvent.VK_U:
+				day_or_night=!day_or_night;
 				break;
 //			case KeyEvent.VK_1:
 //				if ( dy >-100 ) dy -= 0.5;
